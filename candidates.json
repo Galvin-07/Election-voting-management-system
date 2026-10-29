@@ -1,0 +1,38 @@
+[
+  {
+    "id": "C101",
+    "name": "Priya Raman",
+    "party": "People’s Progress Party",
+    "constituency": "Coimbatore South"
+  },
+  {
+    "id": "C102",
+    "name": "Arun Kumar",
+    "party": "Unity Alliance",
+    "constituency": "Coimbatore North"
+  },
+  {
+    "id": "C103",
+    "name": "Meena Sundaram",
+    "party": "Green Future Party",
+    "constituency": "Singanallur"
+  },
+  {
+    "id": "C104",
+    "name": "Karthik Venkatesh",
+    "party": "National Reform Front",
+    "constituency": "Madurai Central"
+  },
+  {
+    "id": "C105",
+    "name": "Divya Lakshmi",
+    "party": "People’s Progress Party",
+    "constituency": "Tiruchirappalli East"
+  },
+  {
+    "id": "C106",
+    "name": "Suresh Babu",
+    "party": "Independent",
+    "constituency": "Salem West"
+  }
+]

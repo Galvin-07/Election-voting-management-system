@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Election Voting Management System</title>
+<style>
+  :root {
+    --paper: #eef1f5; --card: #ffffff; --ink: #14213d; --muted: #5b6785;
+    --line: #cfd6e4; --stamp: #c1272d; --ok: #1d7a4d; --accent: #14213d;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --paper: #0f1626; --card: #172036; --ink: #e8ecf6; --muted: #9aa6c4; --line: #2b3858; --stamp: #ff6b6f; --ok: #5fd197; --accent: #e8ecf6; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.5 "Segoe UI", system-ui, sans-serif; }
+  header { background: var(--ink); color: var(--paper); padding: 28px 20px; border-bottom: 6px solid var(--stamp); }
+  header h1 { margin: 0; font: 700 1.7rem/1.2 Georgia, "Times New Roman", serif; }
+  header p { margin: 4px 0 0; opacity: .8; }
+  main { max-width: 1000px; margin: 0 auto; padding: 24px 16px 60px; display: grid; gap: 24px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 20px; }
+  h2 { margin: 0 0 14px; font: 700 1.2rem Georgia, serif; }
+  form { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; align-items: end; }
+  label { display: grid; gap: 4px; font-size: .9rem; color: var(--muted); }
+  input { padding: 9px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); color: var(--ink); font: inherit; }
+  input:disabled { opacity: .6; }
+  button { padding: 9px 16px; border: 0; border-radius: 4px; font: 600 .95rem inherit; cursor: pointer; background: var(--accent); color: var(--paper); }
+  button.secondary { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  button.danger { background: var(--stamp); color: #fff; }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--stamp); outline-offset: 2px; }
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .toolbar input { flex: 1; min-width: 220px; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; font-size: .9rem; }
+  td.actions { white-space: nowrap; display: flex; gap: 6px; }
+  td.actions button { padding: 5px 10px; font-size: .85rem; }
+  .empty { padding: 24px 8px; color: var(--muted); }
+  #msg { min-height: 1.4em; margin-top: 10px; font-weight: 600; }
+  #msg.err { color: var(--stamp); } #msg.ok { color: var(--ok); }
+  .count { color: var(--muted); font-weight: 400; font-size: .9rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Election Voting Management System</h1>
+  <p>Candidate register</p>
+</header>
+<main>
+  <section>
+    <h2 id="formTitle">Add candidate</h2>
+    <form id="form">
+      <label>Candidate ID <input id="id" required placeholder="e.g. C101"></label>
+      <label>Name <input id="name" required placeholder="Full name"></label>
+      <label>Party name <input id="party" required placeholder="Party"></label>
+      <label>Constituency <input id="constituency" required placeholder="Constituency"></label>
+      <div class="toolbar" style="margin:0">
+        <button type="submit" id="saveBtn">Add candidate</button>
+        <button type="button" class="secondary" id="cancelBtn" hidden>Cancel edit</button>
+      </div>
+    </form>
+    <div id="msg" role="status" aria-live="polite"></div>
+  </section>
+
+  <section>
+    <h2>Candidates <span class="count" id="count"></span></h2>
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="Search by candidate ID, name or party name">
+      <button class="secondary" id="clearBtn">Show all</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Name</th><th>Party</th><th>Constituency</th><th>Actions</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const API = '/api/candidates';
+let editingId = null;
+
+function say(text, type) { $('msg').textContent = text; $('msg').className = type || ''; }
+
+async function api(url, opts) {
+  const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+async function load() {
+  const q = $('search').value.trim();
+  const list = await api(API + (q ? '?q=' + encodeURIComponent(q) : ''));
+  $('count').textContent = `(${list.length} ${list.length === 1 ? 'record' : 'records'})`;
+  $('rows').innerHTML = list.length ? list.map(c => `
+    <tr>
+      <td>${esc(c.id)}</td><td>${esc(c.name)}</td><td>${esc(c.party)}</td><td>${esc(c.constituency)}</td>
+      <td class="actions">
+        <button class="secondary" data-edit="${esc(c.id)}">Edit</button>
+        <button class="danger" data-del="${esc(c.id)}">Delete</button>
+      </td>
+    </tr>`).join('')
+    : `<tr><td colspan="5" class="empty">${q ? 'No candidates match your search.' : 'No candidates registered yet. Add the first one above.'}</td></tr>`;
+}
+
+function resetForm() {
+  editingId = null;
+  $('form').reset();
+  $('id').disabled = false;
+  $('formTitle').textContent = 'Add candidate';
+  $('saveBtn').textContent = 'Add candidate';
+  $('cancelBtn').hidden = true;
+}
+
+$('form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const body = JSON.stringify({ id: $('id').value, name: $('name').value, party: $('party').value, constituency: $('constituency').value });
+  try {
+    if (editingId) {
+      await api(`${API}/${encodeURIComponent(editingId)}`, { method: 'PUT', body });
+      say('Candidate updated.', 'ok');
+    } else {
+      await api(API, { method: 'POST', body });
+      say('Candidate added.', 'ok');
+    }
+    resetForm(); load();
+  } catch (err) { say(err.message, 'err'); }
+});
+
+$('cancelBtn').onclick = () => { resetForm(); say(''); };
+$('search').addEventListener('input', load);
+$('clearBtn').onclick = () => { $('search').value = ''; load(); };
+
+$('rows').addEventListener('click', async e => {
+  const editId = e.target.dataset.edit, delId = e.target.dataset.del;
+  try {
+    if (editId) {
+      const c = await api(`${API}/${encodeURIComponent(editId)}`);
+      editingId = c.id;
+      $('id').value = c.id; $('id').disabled = true;
+      $('name').value = c.name; $('party').value = c.party; $('constituency').value = c.constituency;
+      $('formTitle').textContent = `Update candidate ${c.id}`;
+      $('saveBtn').textContent = 'Save changes';
+      $('cancelBtn').hidden = false;
+      $('name').focus(); window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (delId) {
+      if (!confirm(`Delete candidate ${delId}? This cannot be undone.`)) return;
+      await api(`${API}/${encodeURIComponent(delId)}`, { method: 'DELETE' });
+      if (editingId === delId) resetForm();
+      say('Candidate deleted.', 'ok'); load();
+    }
+  } catch (err) { say(err.message, 'err'); }
+});
+
+load();
+</script>
+</body>
+</html>

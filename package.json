@@ -1,0 +1,8 @@
+{
+  "name": "election-voting-management-system",
+  "version": "1.0.0",
+  "description": "Candidate management module for an Election Voting Management System",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=16" }
+}
